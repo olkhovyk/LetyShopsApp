@@ -14,6 +14,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.olk.ilya.letyshopsapp.R;
+import com.olk.ilya.letyshopsapp.data.Alarm;
+import com.olk.ilya.letyshopsapp.data.dagger.App;
 import com.olk.ilya.letyshopsapp.domain.Currency;
 import com.olk.ilya.letyshopsapp.domain.CurrencyMap;
 
@@ -21,16 +23,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by Илья on 02.03.2017.
- */
+import javax.inject.Inject;
+
 
 public class CurrencyListFragment extends Fragment {
+    @Inject
+    Alarm mAlarm;
+
     private RecyclerView mRecyclerView;
     private CurrencyAdapter mCurrencyAdapter;
     private Button mButton;
 
-
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
 
     @Nullable
     @Override
@@ -39,6 +46,8 @@ public class CurrencyListFragment extends Fragment {
         mRecyclerView = (RecyclerView) view.findViewById(R.id.currency_recycler_view);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         updateUI();
+        App.getComponent().inject(this);
+        mAlarm.setAlarm(view.getContext());
         mButton = (Button) view.findViewById(R.id.open_button);
         openHistory();
         return view;
@@ -61,6 +70,7 @@ public class CurrencyListFragment extends Fragment {
             }
         });
     }
+
 
 
     private class CurrencyHolder extends RecyclerView.ViewHolder implements View.OnClickListener{

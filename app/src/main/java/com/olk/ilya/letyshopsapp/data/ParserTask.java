@@ -1,7 +1,9 @@
 package com.olk.ilya.letyshopsapp.data;
 
 import android.os.AsyncTask;
+import android.view.View;
 
+import com.olk.ilya.letyshopsapp.data.dagger.App;
 import com.olk.ilya.letyshopsapp.domain.Currency;
 import com.olk.ilya.letyshopsapp.domain.CurrencyMap;
 
@@ -15,20 +17,28 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import javax.inject.Inject;
 
 
 public class ParserTask extends AsyncTask<Void, Void, Void> {
 
-    HttpURLConnection urlConnection = null;
-    BufferedReader reader = null;
-    String resultJson = "";
-    private Callback callback;
-    JSONArray jsonArray;
+    private Logger LOGGER = Logger.getLogger(ParserTask.class.getName());
 
+    @Inject Currency mCurrency;
+
+    private HttpURLConnection urlConnection = null;
+    private BufferedReader reader = null;
+    private String resultJson = "";
+    private Callback callback;
+    private JSONArray jsonArray;
+
+    @Inject
     public ParserTask(final Callback callback) {
+       // App.getComponent().inject(this);
         this.callback = callback;
     }
 
@@ -36,30 +46,17 @@ public class ParserTask extends AsyncTask<Void, Void, Void> {
     protected Void doInBackground(Void... params) {
         try {
             createNewConnection();
+            read(urlConnection);
 
-            InputStream inputStream = urlConnection.getInputStream();
-            StringBuffer buffer = new StringBuffer();
-            reader = new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                buffer.append(line);
-            }
-
-            resultJson = buffer.toString();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try{
             jsonArray = new JSONArray(resultJson);
             for(int i = 0; i < jsonArray.length(); i++){
                 JSONObject obj = jsonArray.getJSONObject(i);
-                Currency c = createNewCurrency(obj);
-                CurrencyMap.getInstance().getCurrencyMap().put(c.getCcy(),c);
+                mCurrency = createNewCurrency(obj);
+                CurrencyMap.getInstance().getCurrencyMap().put(mCurrency.getCcy(),mCurrency);
             }
 
-        } catch (JSONException e) {
+        }catch (JSONException | IOException e) {
+            LOGGER.log(Level.SEVERE, e.toString());
             e.printStackTrace();
         }
         return null;
@@ -94,18 +91,29 @@ public class ParserTask extends AsyncTask<Void, Void, Void> {
         try {
             url = new URL("https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5");
         } catch (MalformedURLException e) {
+            LOGGER.log(Level.SEVERE, e.toString());
             e.printStackTrace();
         }
         try {
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("GET");
             urlConnection.connect();
-        } catch (ProtocolException e) {
-            e.printStackTrace();
         } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, e.toString());
             e.printStackTrace();
         }
 
+    }
+
+    private void read(HttpURLConnection urlConnection) throws IOException{
+        InputStream inputStream = urlConnection.getInputStream();
+        StringBuffer buffer = new StringBuffer();
+        reader = new BufferedReader(new InputStreamReader(inputStream));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            buffer.append(line);
+        }
+        resultJson = buffer.toString();
     }
 
 }
